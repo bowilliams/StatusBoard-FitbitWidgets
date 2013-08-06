@@ -30,9 +30,10 @@ passport.deserializeUser(function(obj, done) {
 passport.use(new FitbitStrategy({
     consumerKey: FITBIT_CONSUMER_KEY,
     consumerSecret: FITBIT_CONSUMER_SECRET,
-    callbackURL: "http://localhost:3000/auth/fitbit/callback"
+    callbackURL: "http://localhost:3000/auth/fitbit/callback",
+    passReqToCallback: true
   },
-  function(token, tokenSecret, profile, done) {
+  function(req, token, tokenSecret, profile, done) {
     // asynchronous verification, for effect...
     process.nextTick(function () {
       
@@ -40,6 +41,8 @@ passport.use(new FitbitStrategy({
       // represent the logged-in user.  In a typical application, you would want
       // to associate the Fitbit account with a user record in your database,
       // and return that user instead.
+      req.session.twToken = token;
+      req.session.twTokenSecret = tokenSecret;
       return done(null, profile);
     });
   }
@@ -58,7 +61,7 @@ app.configure(function() {
   app.use(express.cookieParser());
   app.use(express.bodyParser());
   app.use(express.methodOverride());
-  app.use(express.session({ secret: 'keyboard cat' }));
+  app.use(express.session({ secret: 'no more mutants' }));
   // Initialize Passport!  Also use passport.session() middleware, to support
   // persistent login sessions (recommended).
   app.use(passport.initialize());
@@ -69,12 +72,17 @@ app.configure(function() {
 
 
 app.get('/', function(req, res){
-  console.log(req.user);
+  console.log(req.session.twToken);
+  console.log(req.session.twTokenSecret);
   res.render('index', { user: req.user });
 });
 
 app.get('/account', ensureAuthenticated, function(req, res){
   res.render('account', { user: req.user });
+});
+
+app.get('/data', ensureAuthenticated, function(req, res) {
+  res.json(req.user);
 });
 
 app.get('/login', function(req, res){
